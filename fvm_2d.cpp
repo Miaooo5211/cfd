@@ -2232,6 +2232,19 @@ void Calculate_flux(Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Interface2d*
 	}
 }
 
+void GKS2D_smooth(Flux2d& flux, Recon2d& interface, double dt, double n1x, double n1y, double n2x, double n2y, int cell, int gs, int xy, Fluid2d* fluids)
+{
+
+	
+/***************************************************************************
+ * Note:
+ * The implementation of the CGKS solver is not included in this public code due to third-party intellectual property restrictions.
+ * The CGKS solver is only used to provide the underlying flow-field solution and is not part of the methodological contribution of this work.
+ * The proposed TENO-DeC-A framework can be coupled with other numerical solvers.
+ ***************************************************************************/
+
+	
+}
 
 void Reconstruction_forg0(Interface2d* xinterfaces, Interface2d* yinterfaces, Fluid2d* fluids, Block2d block)
 {
