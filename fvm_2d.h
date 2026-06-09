@@ -277,6 +277,7 @@ extern Flux_function_2d flux_function_2d;
 
 void LF2D(Flux2d &flux, Recon2d& interface, double dt);
 void HLLC2D(Flux2d& flux, Recon2d& interface, double dt);
+void CGKS2D(Flux2d &flux, Recon2d& interface, double dt,double n1x, double n1y, double n2x, double n2y, int cell, int gs, int xy, Fluid2d* fluids);
 void NS_by_central_difference_prim_2D(Flux2d& flux, Recon2d& interface, double dt);
 void NS_by_central_difference_convar_2D(Flux2d& flux, Recon2d& interface, double dt);
 
