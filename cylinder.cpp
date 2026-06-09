@@ -1,6 +1,8 @@
 #include"cylinder.h"
 #include"boundary_layer.h"
 void output2d(Fluid2d* fluids, Block2d block);
+
+// main workflow
 void cylinder()
 {
 	Runtime runtime;
@@ -10,7 +12,7 @@ void cylinder()
 
 	block.ghost = 9;
 
-	double tstop = 0.2; //Sod
+	double tstop = 0.2; //Sod problem
 	block.CFL = 1.0;
 
 	K = 3;
@@ -35,30 +37,33 @@ void cylinder()
 	gausspoint = 1;
 	SetGuassPoint();
 	reconstruction_variable = characteristic;
+	
+	//reconstruction type
 	wenotype = teno;
-
 	cellreconstruction_2D_normal = TENO7_normal;
 
-
+	//solver
 	flux_function_2d = CGKS2D;
 
-	timecoe_list_2d = RK2_2D;
+	//timecoe_list_2d = RK2_2D;
 	Initial_stages(block);
+	//Number of temporal stages
 	block.stages = 5;
-
-
+	
 	Fluid2d* fluids = NULL;
 	Interface2d* xinterfaces = NULL;
 	Interface2d* yinterfaces = NULL;
 	Flux2d_gauss** xfluxes = NULL;
 	Flux2d_gauss** yfluxes = NULL;
-
+	
+	//Grid number
 	string grid = add_mesh_directory_modify_for_linux()
 		+ "structured-mesh/blast200.plt";
 
 	Read_structured_mesh
 	(grid, &fluids, &xinterfaces, &yinterfaces, &xfluxes, &yfluxes, block);
 
+	//Initial conditions
 	for (int i = 0; i < block.nx; i++)
 	{
 		for (int j = 0; j < block.ny; j++)
@@ -94,18 +99,18 @@ void cylinder()
 		}
 	}
 
-
-
 	runtime.finish_initial = clock();
 	block.t = 0;
 	block.step = 0;
 	int inputstep = 1;
 
+	// Uniform grid spacing
 	block.dx = 1.0 / block.nodex;
 	block.dy = 1.0 / block.nodey;
 
 	while (block.t < tstop)
 	{
+		// Output control and interactive termination
 		if (block.step % inputstep == 0)
 		{
 			cout << "pls cin interation step, if input is 0, then the program will exit " << endl;
@@ -116,6 +121,7 @@ void cylinder()
 				break;
 			}
 		}
+		// Start runtime recording
 		if (runtime.start_compute == 0.0)
 		{
 			runtime.start_compute = clock();
@@ -126,30 +132,39 @@ void cylinder()
 		CopyFluid_new_to_old(fluids, block);
 		Convar_to_Primvar(fluids, block);
 
-
+     	// Compute time step based on CFL condition
 		block.dt = Get_CFL1(block, fluids, tstop);
 
-		//------------------present--------------------
-		int iter = 7;
-		cellreconstruction_2D_normal = TENO7_normal;
+	
+	    // ---------------------------------------------------------
+	    // TENO-DeC-A framework
+		
+		int iter = 7;  // Number of DeC correction iterations
+		cellreconstruction_2D_normal = TENO7_normal; 	//Reconstruction_within_cell1--reconstruction type
 
 		for (int k = 0; k < iter; k++)  //correction
 		{
-			if (k == 0)
+			if (k == 0) // Initial prediction and shock-sensor computation
 			{
+				//Boundary conditions
 				boundaryforBoundary_layerSod(fluids, block, bcvalue[0]);
-
+	            
+				//Reconstruction
 				Reconstruction_within_cell0(xinterfaces, yinterfaces, fluids, block, 0);
 
+				//Numerical flux evaluation
 				Calculate_flux(xfluxes, yfluxes, xinterfaces, yinterfaces, block, 0, fluids);
 
-				comput_du_dt(fluids, xfluxes, yfluxes, block, 0, xinterfaces, yinterfaces);
+				// Evaluate the finite-volume right-hand side using interface fluxes
+				Update_dec(fluids, xfluxes, yfluxes, block, 0, xinterfaces, yinterfaces);
 
+				//Initial DeC prediction update
 				Update_DeC7_1(fluids, xfluxes, yfluxes, block, xinterfaces, yinterfaces);
 			}
 			else
 			{
-				for (int i = 1; i < block.stages; i++) //midstep
+				// DeC correction stages
+				for (int i = 1; i < block.stages; i++) // Temporal solution points
 				{
 					convarset(fluids, block, bcvalue[0], i);
 
@@ -159,16 +174,22 @@ void cylinder()
 
 					Calculate_flux(xfluxes, yfluxes, xinterfaces, yinterfaces, block, i, fluids);
 
-					comput_du_dt(fluids, xfluxes, yfluxes, block, i, xinterfaces, yinterfaces);
-
+					Update_dec(fluids, xfluxes, yfluxes, block, i, xinterfaces, yinterfaces);
+                    
+					// Save RHS for later DeC correction
 					Duset(fluids, block, bcvalue[0], i);
 				}
+				//DeC correction update
 				Update_DeC7(fluids, xfluxes, yfluxes, block, xinterfaces, yinterfaces);
 			}
 		}
+		// Update solution and reset DeC variables
 		finalset(fluids, block, bcvalue[0]);
-
-		//-------------------DeC7--------------------
+        // ---------------------------------------------------------
+		
+	    // ---------------------------------------------------------
+	    // TENO-DeC framework
+		
 		//int iter = 7;
 		//cellreconstruction_2D_normal = TENO70_normal;
 
@@ -206,8 +227,11 @@ void cylinder()
 		//	}
 		//}
 		//finalset(fluids, block, bcvalue[0]);
+	    // ---------------------------------------------------------
 
-		////---------------- RK44----------------
+		// ---------------------------------------------------------
+        // TENO-RK44 framework
+		
 		//block.stages = 4;
 		//cellreconstruction_2D_normal = TENO70_normal;
 
@@ -221,6 +245,7 @@ void cylinder()
 
 		//	Update_RK44(fluids, xfluxes, yfluxes, block, i, xinterfaces, yinterfaces);
 		//}
+		// ---------------------------------------------------------
 
 		++block.step;
 		block.t = block.t + block.dt;
@@ -236,9 +261,9 @@ void cylinder()
 	}
 	runtime.finish_compute = clock();
 	;
-	cout << "\n the total running time is " << (double)(runtime.finish_compute - runtime.start_initial) / CLOCKS_PER_SEC << "�룡" << endl;
-	cout << "\n the time for initializing is " << (double)(runtime.finish_initial - runtime.start_initial) / CLOCKS_PER_SEC << "�룡" << endl;
-	cout << "\n the time for computing is " << (double)(runtime.finish_compute - runtime.start_compute) / CLOCKS_PER_SEC << "�룡" << endl;
+	cout << "\n the total running time is " << (double)(runtime.finish_compute - runtime.start_initial) / CLOCKS_PER_SEC << "Ãë£¡" << endl;
+	cout << "\n the time for initializing is " << (double)(runtime.finish_initial - runtime.start_initial) / CLOCKS_PER_SEC << "Ãë£¡" << endl;
+	cout << "\n the time for computing is " << (double)(runtime.finish_compute - runtime.start_compute) / CLOCKS_PER_SEC << "Ãë£¡" << endl;
 
 	output2d(fluids, block);
 
