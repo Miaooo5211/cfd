@@ -1884,7 +1884,60 @@ void TENO7opt_right(double& var, double& der1, double& der2, double wn3, double 
 	der1 = 0.0;
 }
 
+void Update_dec(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, int stage, Interface2d* xinterfaces, Interface2d* yinterfaces)
+{
 
+	if (stage > block.stages)
+	{
+		cout << "wrong middle stage,pls check the time marching setting" << endl;
+		exit(0);
+	}
+
+	double dt = block.dt;
+
+	Update_with_gauss_dec(fluids, xfluxes, yfluxes, block, stage);
+}
+void Update_with_gauss_dec(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, int stage)
+{
+	//Note : calculate the final flux of the cell, in fluids, by the obtained final flux of interface, in xfluxes and yfluxes
+#pragma omp parallel for collapse(2)
+	for (int i = block.ghost - 2; i < block.nodex + block.ghost + 2; i++)
+	{
+		for (int j = block.ghost - 2; j < block.nodey + block.ghost + 2; j++)
+		{
+			int face = i * (block.ny + 1) + j;
+			for (int num_gauss = 0; num_gauss < gausspoint; num_gauss++)
+			{
+				Local_to_Global(yfluxes[face][stage].gauss[num_gauss].f, yfluxes[face][stage].gauss[num_gauss].normal);
+				Local_to_Global(xfluxes[face][stage].gauss[num_gauss].f, xfluxes[face][stage].gauss[num_gauss].normal);
+			}
+		}
+	}
+
+#pragma omp parallel for collapse(2)
+	for (int i = block.ghost - 2; i < block.nodex + block.ghost + 2; i++)
+	{
+		for (int j = block.ghost - 2; j < block.nodey + block.ghost + 2; j++)
+		{
+			int cell = i * (block.ny) + j;
+			int face = i * (block.ny + 1) + j;
+
+			for (int var = 0; var < 4; var++)
+			{
+				double total_flux = 0.0;
+				for (int num_gauss = 0; num_gauss < gausspoint; num_gauss++)
+				{
+					total_flux += gauss_weight[num_gauss] * yfluxes[face][stage].gauss[num_gauss].length * yfluxes[face][stage].gauss[num_gauss].f[var];
+					total_flux += -gauss_weight[num_gauss] * yfluxes[face + 1][stage].gauss[num_gauss].length * yfluxes[face + 1][stage].gauss[num_gauss].f[var];
+					total_flux += gauss_weight[num_gauss] * xfluxes[face][stage].gauss[num_gauss].length * xfluxes[face][stage].gauss[num_gauss].f[var];
+					total_flux += -gauss_weight[num_gauss] * xfluxes[face + block.ny + 1][stage].gauss[num_gauss].length * xfluxes[face + block.ny + 1][stage].gauss[num_gauss].f[var];
+				}
+
+				fluids[cell].D_du_ut[var] = -total_flux / fluids[cell].area;
+			}
+		}
+	}
+}
 void comput_du_dt(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, int stage, Interface2d* xinterfaces, Interface2d* yinterfaces)
 {
 #pragma omp parallel for collapse(2)
@@ -2020,6 +2073,8 @@ void Update_DeC7_1(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yflux
 	double un0, F0, F1, F2, F3, F4;
 	double dt = block.dt;
 
+	//coefficient
+	
 	// m = 1
 	double theta10 = 0.067728432186156901;
 	double theta11 = 0.119744769343411689;
@@ -2080,6 +2135,8 @@ void Update_DeC7(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes
 	double un0, F0, F1, F2, F3, F4;
 	double dt = block.dt;
 
+	//coefficient
+	
 	// m = 1
 	double theta10 = 0.067728432186156901;
 	double theta11 = 0.119744769343411689;
