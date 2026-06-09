@@ -263,6 +263,8 @@ typedef void(*Reconstruction_forG0_2D_tangent)(Interface2d *xinterfaces, Interfa
 extern Reconstruction_forG0_2D_tangent g0reconstruction_2D_tangent;
 
 
+void Update_dec(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, int stage, Interface2d* xinterfaces, Interface2d* yinterfaces);
+void Update_with_gauss_dec(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, int stage);
 
 void Update_RK44(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, int stage, Interface2d* xinterfaces, Interface2d* yinterfaces);
 void Update_DeC7_1(Fluid2d* fluids, Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Block2d block, Interface2d* xinterfaces, Interface2d* yinterfaces);
