@@ -2232,7 +2232,7 @@ void Calculate_flux(Flux2d_gauss** xfluxes, Flux2d_gauss** yfluxes, Interface2d*
 	}
 }
 
-void GKS2D_smooth(Flux2d& flux, Recon2d& interface, double dt, double n1x, double n1y, double n2x, double n2y, int cell, int gs, int xy, Fluid2d* fluids)
+void CGKS2D(Flux2d& flux, Recon2d& interface, double dt, double n1x, double n1y, double n2x, double n2y, int cell, int gs, int xy, Fluid2d* fluids)
 {
 
 	
