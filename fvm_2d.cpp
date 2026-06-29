@@ -328,15 +328,6 @@ void Reconstruction_within_cell0(Interface2d* xinterfaces, Interface2d* yinterfa
 		for (int j = block.ghost - 2; j < block.ny - block.ghost + 2; j++)
 		{
 			int index = i * block.ny + j;
-
-			for (int var = 0; var < 4; var++)
-			{
-				xinterfaces[(i + 1) * (block.ny + 1) + j].gauss[0].right.convar[var] = xinterfaces[(i + 1) * (block.ny + 1) + j].line.right.convar[var];
-				xinterfaces[(i + 1) * (block.ny + 1) + j].gauss[0].left.convar[var] = xinterfaces[(i + 1) * (block.ny + 1) + j].line.left.convar[var];
-				yinterfaces[i * (block.ny + 1) + j].gauss[0].right.convar[var] = yinterfaces[i * (block.ny + 1) + j].line.right.convar[var];
-				yinterfaces[i * (block.ny + 1) + j + 1].gauss[0].left.convar[var] = yinterfaces[i * (block.ny + 1) + j + 1].line.left.convar[var];
-			}
-
 	
 			fluids[index].sensor = max({ xinterfaces[i * (block.ny + 1) + j].line.right.sensor, xinterfaces[i * (block.ny + 1) + j].line.left.sensor,
 				                         yinterfaces[i * (block.ny + 1) + j].line.right.sensor, yinterfaces[i * (block.ny + 1) + j].line.left.sensor }); //cell max
@@ -360,7 +351,24 @@ void Reconstruction_within_cell1(Interface2d* xinterfaces, Interface2d* yinterfa
 		}
 	}
 
+	#pragma omp parallel for collapse(2)
+	for (int i = block.ghost - 2; i < block.nx - block.ghost + 2; i++)
+	{
+		for (int j = block.ghost - 2; j < block.ny - block.ghost + 2; j++)
+		{
+			int index = i * block.ny + j;
 
+			for (int var = 0; var < 4; var++)
+			{
+				xinterfaces[(i + 1) * (block.ny + 1) + j].gauss[0].right.convar[var] = xinterfaces[(i + 1) * (block.ny + 1) + j].line.right.convar[var];
+				xinterfaces[(i + 1) * (block.ny + 1) + j].gauss[0].left.convar[var] = xinterfaces[(i + 1) * (block.ny + 1) + j].line.left.convar[var];
+				yinterfaces[i * (block.ny + 1) + j].gauss[0].right.convar[var] = yinterfaces[i * (block.ny + 1) + j].line.right.convar[var];
+				yinterfaces[i * (block.ny + 1) + j + 1].gauss[0].left.convar[var] = yinterfaces[i * (block.ny + 1) + j + 1].line.left.convar[var];
+			}
+
+	
+		}
+	}
 }
 
 
