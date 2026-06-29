@@ -322,22 +322,7 @@ void Reconstruction_within_cell0(Interface2d* xinterfaces, Interface2d* yinterfa
 		}
 	}
 
-}
-
-void Reconstruction_within_cell1(Interface2d* xinterfaces, Interface2d* yinterfaces, Fluid2d* fluids, Block2d block)
-{
-#pragma omp parallel for collapse(2)
-	for (int i = block.ghost - 2; i < block.nx - block.ghost + 2; i++)
-	{
-		for (int j = block.ghost - 2; j < block.ny - block.ghost + 2; j++)
-		{
-				cellreconstruction_2D_normal
-				(xinterfaces[i * (block.ny + 1) + j], xinterfaces[(i + 1) * (block.ny + 1) + j],
-					yinterfaces[i * (block.ny + 1) + j], yinterfaces[i * (block.ny + 1) + j + 1], &fluids[i * block.ny + j], block);
-		}
-	}
-
-#pragma omp parallel for collapse(2)
+	#pragma omp parallel for collapse(2)
 	for (int i = block.ghost - 2; i < block.nx - block.ghost + 2; i++)
 	{
 		for (int j = block.ghost - 2; j < block.ny - block.ghost + 2; j++)
@@ -355,6 +340,23 @@ void Reconstruction_within_cell1(Interface2d* xinterfaces, Interface2d* yinterfa
 	
 			fluids[index].sensor = max({ xinterfaces[i * (block.ny + 1) + j].line.right.sensor, xinterfaces[i * (block.ny + 1) + j].line.left.sensor,
 				                         yinterfaces[i * (block.ny + 1) + j].line.right.sensor, yinterfaces[i * (block.ny + 1) + j].line.left.sensor }); //cell max
+		}
+	}
+
+
+
+}
+
+void Reconstruction_within_cell1(Interface2d* xinterfaces, Interface2d* yinterfaces, Fluid2d* fluids, Block2d block)
+{
+#pragma omp parallel for collapse(2)
+	for (int i = block.ghost - 2; i < block.nx - block.ghost + 2; i++)
+	{
+		for (int j = block.ghost - 2; j < block.ny - block.ghost + 2; j++)
+		{
+				cellreconstruction_2D_normal
+				(xinterfaces[i * (block.ny + 1) + j], xinterfaces[(i + 1) * (block.ny + 1) + j],
+					yinterfaces[i * (block.ny + 1) + j], yinterfaces[i * (block.ny + 1) + j + 1], &fluids[i * block.ny + j], block);
 		}
 	}
 
